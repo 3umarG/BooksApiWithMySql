@@ -6,12 +6,14 @@ import com.api.BooksApiWithMySql.models.Book;
 import com.api.BooksApiWithMySql.repository.BooksJpaRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @AllArgsConstructor
+@CacheConfig(cacheNames = "book")
 public class BooksJpaService extends BaseBooksService {
 
     @Autowired
@@ -23,6 +25,7 @@ public class BooksJpaService extends BaseBooksService {
 //    }
 
 
+    @Cacheable(value = "booksCache")
     @Override
     public List<Book> getAllBooks() {
         return repository.findAll();
@@ -39,12 +42,14 @@ public class BooksJpaService extends BaseBooksService {
         return repository.findBooksByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(query, query);
     }
 
+    @Cacheable(value = "booksCache" ,key = "#id") // retrieve with that id
     @Override
     public Book getBookById(Long id) throws NotFoundResourceCustomException {
         return repository.findById(id).orElseThrow(
                 () -> new NotFoundResourceCustomException("There is no Book with that Id"));
     }
 
+    @CachePut(value = "booksCache" ,key = "#result.id") // update cache value that has this id
     @Override
     public Book updateBook(Long id, Book book) throws NotFoundResourceCustomException {
         Book b = getBookById(id);
@@ -61,6 +66,7 @@ public class BooksJpaService extends BaseBooksService {
 
     }
 
+    @CacheEvict(value = "booksCache", key = "#id")  // delete the object on the cache with that id
     @Override
     public Book deleteBook(Long id) throws NotFoundResourceCustomException {
         Book book = getBookById(id);
